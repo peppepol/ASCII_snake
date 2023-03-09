@@ -37,16 +37,20 @@ Queue q;
 
 Queue initialize_queue()
 {
+    ITEMS_LENGTH = 5;
     Queue q;
+    q.size = size;
+    q.allocate_memory = allocate_memory;
+    q.deallocate_memory = deallocate_memory;
     q.dequeue = dequeue;
     q.enqueue = enqueue;
     q.print = print;
-    q.size = size;
     q.contains = contains;
 
     return q;
 }
 
+/*
 void print_schema()
 {
     //TODO: Refactoring and fix snake print
@@ -64,7 +68,7 @@ void print_schema()
                 food_spawned = 0;
                 snake_length += 1;
             }
-            
+
             if ((j == 0 && i == 0) || (j == 0 && i == HEIGHT - 1))
             {
                 putchar('+');
@@ -80,18 +84,23 @@ void print_schema()
             }
             else if (j != 0 && j != WIDTH - blocks - 1)
             {
-                
-                if (i == snake_y && q.contains(j) == 1)
+                if (i == snake_y && q.contains(i, j) == 1)
                 {
+                    printf("si");
                     putchar('#');
-                    blocks += 1;                
-                }else if (j == food[0] && i == food[1]){
+                    blocks += 1;
+                    continue;
+                }
+
+                if (j == food[0] && i == food[1]){
                     putchar('o');
                     blocks += 1;
-                    food_spawned = 1;                
-                }else{
-                    putchar(' ');
+                    food_spawned = 1;
+                    continue;
+
                 }
+
+                putchar(' ');
             }
             else if (j == WIDTH - blocks - 1)
             {
@@ -102,6 +111,72 @@ void print_schema()
             {
                 putchar('|');
             } // else if( i==snakk)
+        }
+    }
+}
+*/
+
+void print_schema()
+{
+    for (int i = 0; i < HEIGHT; i++)
+    {
+        int blocks = 0;
+
+        for (int j = 0; j < WIDTH; j++)
+        {
+            // FIRST ROW
+            if (i==0)
+            {   
+                if(j==WIDTH - xOffset){
+                    putchar('+');
+                    putchar('\n');
+                }else if(j==0){
+                    putchar('+');
+                }else{
+                    putchar('-');
+                }
+
+            // LAST ROW
+            }else if(i == HEIGHT - yOffset){
+                if(j==WIDTH - xOffset){
+                    putchar('+');
+                    putchar('\n');
+                }else if(j==0){
+                    putchar('+');
+                }else{
+                    putchar('-');
+                }
+
+            // MIDDLE ROW
+            }else{
+                if(j == 0){
+                    putchar('|');
+                }else if(j==WIDTH-xOffset){
+                    putchar('|');
+                    putchar('\n');
+                }else{
+                    //ALL INTERNAL BOX
+                    if(q.contains(j, i) == 1){
+                        printf("\e[32m");
+                        putchar('#');
+                        printf("\e[0m");
+
+                        if(j == food[0] && i == food[1]){
+                            food_taked = 1;
+                            food_spawned = 0;
+                            snake_length++;
+                        }
+                    }else if(j == food[0] && i == food[1]){
+                        printf("\e[38;5;220m");
+                        putchar('o');     
+                        printf("\e[0m");
+
+                        food_spawned = 1;                   
+                    }else{
+                        putchar(' ');
+                    }
+                }
+            }
         }
     }
 }
@@ -116,13 +191,13 @@ void move_cursor(int x, int y)
 
 void up_cursor()
 {
-    printf("\e[%iA", HEIGHT + 2);
+    printf("\e[%iA", HEIGHT+1);
     printf("\e[%iG", 0);
 }
 
 void end_cursor()
 {
-    printf("\e[%iB", HEIGHT - 1);
+    printf("\e[%iB", HEIGHT);
     printf("\e[%iG", 0);
 }
 
@@ -136,7 +211,8 @@ void read_keyboard()
         {
             quit = 1;
             end_cursor();
-            printf("GAME EXIT");
+            q.deallocate_memory();
+            printf("\n\nGAME EXIT");
         }
         else if (ch == 'w')
         {
@@ -162,12 +238,10 @@ void check_direction()
     if (dir == RIGHT)
     {
         snake_x += 1;
-        q.enqueue(snake_x);
     }
     else if (dir == LEFT)
     {
         snake_x -= 1;
-        q.enqueue(snake_x);
     }
     else if (dir == UP)
     {
@@ -177,26 +251,29 @@ void check_direction()
     {
         snake_y += 1;
     }
+
+    q.enqueue(snake_x, snake_y);
 }
 
 void check_bounds()
 {
-    if (snake_x == WIDTH - xOffset)
+    if (snake_x > WIDTH - xOffset)
     {
-        snake_x = xOffset;
+        snake_x = 0;
     }
-    else if (snake_x == 0)
+    else if (snake_x <= 0)
     {
-        snake_x = WIDTH - xOffset - 1;
+        snake_x = WIDTH - xOffset;
     }
-    else if (snake_y == 0)
+    else if (snake_y > HEIGHT - yOffset - 1)
     {
-        snake_y = HEIGHT - yOffset - 1;
+        snake_y = 0;
     }
-    else if (snake_y == HEIGHT - yOffset)
+    else if (snake_y <= 0)
     {
-        snake_y = yOffset;
+        snake_y = HEIGHT - yOffset;
     }
+    
 }
 
 int random_number(int min_num, int max_num)
@@ -223,58 +300,53 @@ int *get_random_position()
 {
     int *array = malloc(sizeof(int) * 2);
     array[0] = random_number(xOffset, WIDTH - xOffset - 1);
-    array[1] = random_number(0, 1 /*HEIGHT - yOffset -1*/);
+    array[1] = random_number(0, HEIGHT - yOffset -1);
 
     return array;
 }
 
 int main(int argc, char const *argv[])
 {
-    // Initialize queues
+    // Initialize queue
     q = initialize_queue();
+    q.allocate_memory();
 
-    // Hide cursor
+    //  Hide cursor
     printf("\e[?25l");
 
     // Print schema
     food = get_random_position();
-    food[1] = 1;
     print_schema();
-
+    printf("\nPUNTI: %i", q.size());
+    
     while (!quit)
     {
         if (food_spawned == 0)
         {
             food = get_random_position();
-            food[1] = 1;
             food_taked = 0;
         }
         // printf("%i", food[1]);
 
         up_cursor();
         print_schema();
+        printf("\nPUNTI: %i", q.size());
 
+        //CHECK QUEUE
         for (int i = 0; i < snake_length; i++)
         {
             if (q.size() > snake_length)
                 q.dequeue();
-            // if(dir == RIGHT || dir == LEFT)
-            // q.dequeue();
         }
-        q.print();
-        printf("SIZE: %i", q.size());
-
-        up_cursor();
 
         check_direction();
         check_bounds();
 
         read_keyboard();
 
-        // quit++;
-
         Sleep(500);
     }
-
+    
+    q.deallocate_memory();
     return 0;
 }
