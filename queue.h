@@ -5,7 +5,6 @@
 
 void memory_realloc();
 
-// TODO: Add automatic reallocation of array when full
 int ITEMS_LENGTH = 100;
 int tail = -1;
 int head = -1;

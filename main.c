@@ -1,15 +1,31 @@
+//TODO: Add handling for game over
+//TODO: Fix snake bug on first row and last column
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <windows.h>
-#include <conio.h>
 #include <time.h>
 
 // PRIVATE
-#include "queue.c"
+#include "queue.h"
 
+// KEYBOARD EVENTS LIBRARY
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+    #include <windows.h>
+    #include <conio.h>
+#else
+    #include <unistd.h>
+    #include <termios.h>
+#endif
+
+// GLOBAL VARIABLES
 #define WIDTH 42
 #define HEIGHT 22
+struct timespec ts;
+
+#ifdef __unix__
+    struct termios oldt, newt;
+#endif
 
 enum Direction
 {
@@ -32,7 +48,7 @@ int food_taked = 0;
 int quit = 0;
 enum Direction dir = RIGHT;
 
-// define queue for x
+// Queue for X,Y
 Queue q;
 
 Queue initialize_queue()
@@ -50,72 +66,7 @@ Queue initialize_queue()
     return q;
 }
 
-/*
-void print_schema()
-{
-    //TODO: Refactoring and fix snake print
-    for (int i = 0; i < HEIGHT; i++)
-    {
-        int blocks = 0;
-
-        for (int j = 0; j < WIDTH; j++)
-        {
-            int blocks = 0;
-
-            if (i == snake_y && j == snake_x && j == food[0] && i == food[1])
-            {
-                food_taked = 1;
-                food_spawned = 0;
-                snake_length += 1;
-            }
-
-            if ((j == 0 && i == 0) || (j == 0 && i == HEIGHT - 1))
-            {
-                putchar('+');
-            }
-            else if ((j == WIDTH - blocks - 1 && i == 0) || (i == HEIGHT - 1 && j == WIDTH - blocks - 1))
-            {
-                putchar('+');
-                putchar('\n');
-            }
-            else if (j != 0 && j != WIDTH - blocks - 1 && (i == 0 || i == HEIGHT - 1))
-            {
-                putchar('-');
-            }
-            else if (j != 0 && j != WIDTH - blocks - 1)
-            {
-                if (i == snake_y && q.contains(i, j) == 1)
-                {
-                    printf("si");
-                    putchar('#');
-                    blocks += 1;
-                    continue;
-                }
-
-                if (j == food[0] && i == food[1]){
-                    putchar('o');
-                    blocks += 1;
-                    food_spawned = 1;
-                    continue;
-
-                }
-
-                putchar(' ');
-            }
-            else if (j == WIDTH - blocks - 1)
-            {
-                putchar('|');
-                putchar('\n');
-            }
-            else if (j == 0)
-            {
-                putchar('|');
-            } // else if( i==snakk)
-        }
-    }
-}
-*/
-
+// PRINT GAME BOX
 void print_schema()
 {
     for (int i = 0; i < HEIGHT; i++)
@@ -181,6 +132,7 @@ void print_schema()
     }
 }
 
+// MOVE CURSOR TO X,Y
 void move_cursor(int x, int y)
 {
     if (x > 0)
@@ -189,29 +141,48 @@ void move_cursor(int x, int y)
         printf("\e[%iB", y);
 }
 
+// MOVE CURSOR TO START
 void up_cursor()
 {
     printf("\e[%iA", HEIGHT+1);
     printf("\e[%iG", 0);
 }
 
+// MOVE CURSOR TO END
 void end_cursor()
 {
     printf("\e[%iB", HEIGHT);
     printf("\e[%iG", 0);
 }
 
+// READ INPUT FROM KEYBOARD
 void read_keyboard()
-{
-    // Read keyboard
-    if (kbhit())
-    {
-        char ch = getch();
+{    
+    #ifdef __unix
+        struct timeval tv;
+        fd_set fds;
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+        select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
+        if (FD_ISSET(STDIN_FILENO, &fds)) {
+            char ch = getchar();
+    #else
+
+        if (kbhit())
+        {
+            char ch = getch();
+
+    #endif
+        
         if (ch == 27 || ch == 'q')
         {
             quit = 1;
             end_cursor();
             q.deallocate_memory();
+
             printf("\n\nGAME EXIT");
         }
         else if (ch == 'w')
@@ -231,8 +202,10 @@ void read_keyboard()
             dir = RIGHT;
         }
     }
+    
 }
 
+// CHECK DIRECTION PRESSED
 void check_direction()
 {
     if (dir == RIGHT)
@@ -255,6 +228,7 @@ void check_direction()
     q.enqueue(snake_x, snake_y);
 }
 
+// CHECK IF SNAKE IS OVER BOUNDS
 void check_bounds()
 {
     if (snake_x > WIDTH - xOffset)
@@ -276,6 +250,7 @@ void check_bounds()
     
 }
 
+// GET RANDOM INT
 int random_number(int min_num, int max_num)
 {
     int result = 0, low_num = 0, hi_num = 0;
@@ -296,6 +271,7 @@ int random_number(int min_num, int max_num)
     return result;
 }
 
+// GET RANDOM X,Y IN BOX
 int *get_random_position()
 {
     int *array = malloc(sizeof(int) * 2);
@@ -307,6 +283,14 @@ int *get_random_position()
 
 int main(int argc, char const *argv[])
 {
+    // [LINUX] Switch to canonical mode, disable echo
+    #ifdef __unix__
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    #endif
+    
     // Initialize queue
     q = initialize_queue();
     q.allocate_memory();
@@ -318,7 +302,7 @@ int main(int argc, char const *argv[])
     food = get_random_position();
     print_schema();
     printf("\nPUNTI: %i", q.size());
-    
+
     while (!quit)
     {
         if (food_spawned == 0)
@@ -326,27 +310,38 @@ int main(int argc, char const *argv[])
             food = get_random_position();
             food_taked = 0;
         }
-        // printf("%i", food[1]);
 
         up_cursor();
         print_schema();
-        printf("\nPUNTI: %i", q.size());
+        printf("\nPUNTI: %i", snake_length);
+
+        check_direction();
 
         //CHECK QUEUE
-        for (int i = 0; i < snake_length; i++)
+        for (int i = 0; i <= snake_length; i++)
         {
             if (q.size() > snake_length)
                 q.dequeue();
         }
 
-        check_direction();
+        
         check_bounds();
 
         read_keyboard();
-
-        Sleep(500);
+	
+        // SLEEP TIME
+        int milliseconds=300;
+        ts.tv_sec = milliseconds / 1000;
+        ts.tv_nsec = (milliseconds % 1000) * 1000000;
+        nanosleep(&ts, NULL);
     }
     
     q.deallocate_memory();
+    
+    // RESET LINUX TERMINAL STDIN
+    #ifdef __unix__
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    #endif
+
     return 0;
 }
