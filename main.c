@@ -1,4 +1,3 @@
-//TODO: Add handling for game over
 //TODO: Fix snake bug on first row and last column
 
 #include <string.h>
@@ -47,6 +46,7 @@ int food_spawned = 0;
 int food_taked = 0;
 int quit = 0;
 enum Direction dir = RIGHT;
+int game_over=0;
 
 // Queue for X,Y
 Queue q;
@@ -177,27 +177,31 @@ void read_keyboard()
 
     #endif
         
+        int charCode = ch - '0';
         if (ch == 27 || ch == 'q')
-        {
+        {/*
             quit = 1;
             end_cursor();
             q.deallocate_memory();
-
             printf("\n\nGAME EXIT");
-        }
-        else if (ch == 'w')
+            */
+           game_over=1;
+        }/*else if(ch == 'g'){
+            game_over=1;
+        }*/
+        else if (ch == 'w' || charCode == 24 && dir != DOWN)
         {
             dir = UP;
         }
-        else if (ch == 'a')
+        else if (ch == 'a' || charCode == 27 && dir != RIGHT)
         {
             dir = LEFT;
         }
-        else if (ch == 's')
+        else if (ch == 's' || charCode == 32 && dir != UP)
         {
             dir = DOWN;
         }
-        else if (ch == 'd')
+        else if (ch == 'd' || charCode == 29 && dir != LEFT)
         {
             dir = RIGHT;
         }
@@ -211,6 +215,7 @@ void check_direction()
     if (dir == RIGHT)
     {
         snake_x += 1;
+        
     }
     else if (dir == LEFT)
     {
@@ -224,8 +229,11 @@ void check_direction()
     {
         snake_y += 1;
     }
-
-    q.enqueue(snake_x, snake_y);
+    if(q.contains(snake_x, snake_y)){
+        game_over=1;
+    }else{
+        q.enqueue(snake_x, snake_y);
+    }
 }
 
 // CHECK IF SNAKE IS OVER BOUNDS
@@ -281,6 +289,47 @@ int *get_random_position()
     return array;
 }
 
+//PRINT GAME OVER
+void print_game_over(){
+    for (int i = 0; i < HEIGHT+2; i++)
+    {   
+        if (i == (HEIGHT+2)/2){
+            for (int j = 0; j < WIDTH+20; j++)
+            {
+                if(j == (WIDTH/2) - 5){
+                    printf("GAME OVER!");
+                }else if(j == WIDTH + 20 -1){
+                    putchar(' ');
+                    putchar('\n');
+                }else{
+                    putchar(' ');
+                }
+            }
+        }else if(i == (HEIGHT+2)/2 +1){
+            for (int j = 0; j < WIDTH+20; j++)
+            {
+                if(j == (WIDTH/2) - 5){
+                    printf("PUNTI: %i", length);
+                }else if(j == WIDTH + 20 -1){
+                    putchar(' ');
+                    putchar('\n');
+                }else{
+                    putchar(' ');
+                }
+            }
+        }else{
+            for (int j = 0; j < WIDTH; j++)
+            {
+                putchar(' '); 
+                    
+                if(j==WIDTH-1) {
+                    putchar('\n');
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     // [LINUX] Switch to canonical mode, disable echo
@@ -305,6 +354,14 @@ int main(int argc, char const *argv[])
 
     while (!quit)
     {
+        if(game_over){
+            end_cursor();
+            up_cursor();
+            print_game_over();
+            quit=1;
+            break;
+        }
+
         if (food_spawned == 0)
         {
             food = get_random_position();
