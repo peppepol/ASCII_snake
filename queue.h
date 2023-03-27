@@ -1,4 +1,3 @@
-// #include "test.c"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +43,7 @@ void dequeue()
 {
     if (head == -1)
     {
-        // printf("Coda vuota!");
+        //printf("empty queue");
     }
     else
     {
@@ -72,7 +71,7 @@ void print()
 {
     if (tail == -1)
     {
-        printf("Coda vuota!\n");
+        printf("empty queue\n");
     }
     else
     {
@@ -99,7 +98,7 @@ void allocate_memory()
     items = (int **)malloc(ITEMS_LENGTH * sizeof(int *));
     if (items == NULL)
     {
-        printf("Errore nell'allocazione della memoria");
+        printf("memory allocation error");
         exit(-1);
     }
 
@@ -108,7 +107,7 @@ void allocate_memory()
         items[i] = (int *)malloc(sizeof(int) * 2);
         if (items[i] == NULL)
         {
-            printf("Errore nell'allocazione della memoria");
+            printf("memory allocation error");
             exit(-1);
         }
     }
@@ -127,7 +126,7 @@ void memory_realloc()
     ITEMS_LENGTH *= ITEMS_LENGTH;
 
     if(items == NULL){
-        printf("Memory realloc error!");
+        printf("memory allocation error");
         exit(-1);
     }
 
@@ -135,37 +134,8 @@ void memory_realloc()
     {
         items[i] = (int*) malloc(sizeof(int) * 2);
         if(items[i] == NULL){
-            printf("Memory realloc error!");
+            printf("memory allocation error");
             exit(-1);
         }
     }    
 }
-
-/*
-int main(int argc, char const *argv[])
-{
-
-    Queue q;
-    q.size = size;
-    q.allocate_memory = allocate_memory;
-    q.deallocate_memory = deallocate_memory;
-    q.dequeue = dequeue;
-    q.enqueue = enqueue;
-    q.print = print;
-
-    q.allocate_memory();
-
-    q.enqueue(2,2);
-    q.enqueue(2,3);
-    q.enqueue(1,1);
-    q.print();
-    q.dequeue();
-    q.enqueue(1,2);
-    q.enqueue(3,1);
-    q.print();
-
-    q.deallocate_memory();
-    return 0;
-
-}
-*/

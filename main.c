@@ -1,14 +1,12 @@
-//TODO: Fix snake bug on first row and last column
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
-// PRIVATE
+//Private libraries
 #include "queue.h"
 
-// KEYBOARD EVENTS LIBRARY
+//Keyboard events libraries
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
     #include <windows.h>
     #include <conio.h>
@@ -17,7 +15,7 @@
     #include <termios.h>
 #endif
 
-// GLOBAL VARIABLES
+//Global variables
 #define WIDTH 42
 #define HEIGHT 22
 struct timespec ts;
@@ -48,7 +46,7 @@ int quit = 0;
 enum Direction dir = RIGHT;
 int game_over=0;
 
-// Queue for X,Y
+// Queue for X,Y snake position
 Queue q;
 
 Queue initialize_queue()
@@ -66,7 +64,7 @@ Queue initialize_queue()
     return q;
 }
 
-// PRINT GAME BOX
+//Print game schema
 void print_schema()
 {
     for (int i = 0; i < HEIGHT; i++)
@@ -78,22 +76,21 @@ void print_schema()
             // FIRST ROW
             if (i==0)
             {   
-                if(j==WIDTH - xOffset){
-                    putchar('+');
-                    putchar('\n');
+                if(j==WIDTH-xOffset){
+                    printf("+\e[0m\n");
+                    //putchar('\n');
                 }else if(j==0){
-                    putchar('+');
+                    printf("\e[0;31m+");
                 }else{
-                    putchar('-');
+                    printf("-");
                 }
 
             // LAST ROW
             }else if(i == HEIGHT - yOffset){
                 if(j==WIDTH - xOffset){
-                    putchar('+');
-                    putchar('\n');
+                    printf("+\e[0m\n");
                 }else if(j==0){
-                    putchar('+');
+                    printf("\e[0;31m+");
                 }else{
                     putchar('-');
                 }
@@ -101,10 +98,9 @@ void print_schema()
             // MIDDLE ROW
             }else{
                 if(j == 0){
-                    putchar('|');
+                    printf("\e[0;31m|\e[0m");
                 }else if(j==WIDTH-xOffset){
-                    putchar('|');
-                    putchar('\n');
+                    printf("\e[0;31m|\e[0m\n");
                 }else{
                     //ALL INTERNAL BOX
                     if(q.contains(j, i) == 1){
@@ -132,7 +128,7 @@ void print_schema()
     }
 }
 
-// MOVE CURSOR TO X,Y
+//Move cursor to x,y
 void move_cursor(int x, int y)
 {
     if (x > 0)
@@ -141,21 +137,21 @@ void move_cursor(int x, int y)
         printf("\e[%iB", y);
 }
 
-// MOVE CURSOR TO START
+//Move cursor to start
 void up_cursor()
 {
     printf("\e[%iA", HEIGHT+1);
     printf("\e[%iG", 0);
 }
 
-// MOVE CURSOR TO END
+//Move cursor to end
 void end_cursor()
 {
-    printf("\e[%iB", HEIGHT);
+    printf("\e[%iB", HEIGHT-snake_y+2);
     printf("\e[%iG", 0);
 }
 
-// READ INPUT FROM KEYBOARD
+//Read input from keyboard
 void read_keyboard()
 {    
     #ifdef __unix
@@ -179,43 +175,47 @@ void read_keyboard()
         
         int charCode = ch - '0';
         if (ch == 27 || ch == 'q')
-        {/*
-            quit = 1;
-            end_cursor();
-            q.deallocate_memory();
-            printf("\n\nGAME EXIT");
-            */
+        {
            game_over=1;
-        }/*else if(ch == 'g'){
-            game_over=1;
-        }*/
-        else if (ch == 'w' || charCode == 24 && dir != DOWN)
-        {
-            dir = UP;
         }
-        else if (ch == 'a' || charCode == 27 && dir != RIGHT)
+        else if ((ch == 'w' || charCode == 24) && (snake_x>0 && snake_x<WIDTH-yOffset))
         {
-            dir = LEFT;
+            if(dir != DOWN && snake_length > 1)
+                dir = UP;
+            else if(snake_length == 1)
+                dir = UP;
         }
-        else if (ch == 's' || charCode == 32 && dir != UP)
+        else if ((ch == 'a' || charCode == 27) && (snake_y>0 && snake_y<HEIGHT-xOffset))
         {
-            dir = DOWN;
+            if(dir != RIGHT && snake_length > 1)
+                dir = LEFT;
+            else if(snake_length == 1)
+                dir = LEFT;
         }
-        else if (ch == 'd' || charCode == 29 && dir != LEFT)
+        else if ((ch == 's' || charCode == 32) && (snake_x>0 && snake_x<WIDTH-yOffset))
         {
-            dir = RIGHT;
+            if(dir != UP && snake_length > 1)
+                dir = DOWN;
+            else if(snake_length == 1)
+                dir = DOWN;
+        }
+        else if ((ch == 'd' || charCode == 29)  && (snake_y>0 && snake_y<HEIGHT-xOffset))
+        {
+            if(dir != LEFT && snake_length > 1)
+                dir = RIGHT;
+            else if(snake_length == 1)
+                dir = RIGHT;
         }
     }
     
 }
 
-// CHECK DIRECTION PRESSED
+//Check direction pressed
 void check_direction()
 {
     if (dir == RIGHT)
     {
         snake_x += 1;
-        
     }
     else if (dir == LEFT)
     {
@@ -229,6 +229,7 @@ void check_direction()
     {
         snake_y += 1;
     }
+
     if(q.contains(snake_x, snake_y)){
         game_over=1;
     }else{
@@ -236,10 +237,10 @@ void check_direction()
     }
 }
 
-// CHECK IF SNAKE IS OVER BOUNDS
+//Check if snake is over bounds
 void check_bounds()
 {
-    if (snake_x > WIDTH - xOffset)
+    if (snake_x >= WIDTH - xOffset)
     {
         snake_x = 0;
     }
@@ -247,10 +248,12 @@ void check_bounds()
     {
         snake_x = WIDTH - xOffset;
     }
-    else if (snake_y > HEIGHT - yOffset - 1)
+
+    else if (snake_y >= HEIGHT-yOffset )
     {
         snake_y = 0;
     }
+    
     else if (snake_y <= 0)
     {
         snake_y = HEIGHT - yOffset;
@@ -258,7 +261,7 @@ void check_bounds()
     
 }
 
-// GET RANDOM INT
+//Get random integer
 int random_number(int min_num, int max_num)
 {
     int result = 0, low_num = 0, hi_num = 0;
@@ -266,11 +269,11 @@ int random_number(int min_num, int max_num)
     if (min_num < max_num)
     {
         low_num = min_num;
-        hi_num = max_num + 1; // include max_num in output
+        hi_num = max_num + 1; 
     }
     else
     {
-        low_num = max_num + 1; // include max_num in output
+        low_num = max_num + 1; 
         hi_num = min_num;
     }
 
@@ -279,7 +282,7 @@ int random_number(int min_num, int max_num)
     return result;
 }
 
-// GET RANDOM X,Y IN BOX
+//Get random x,y in box
 int *get_random_position()
 {
     int *array = malloc(sizeof(int) * 2);
@@ -289,7 +292,18 @@ int *get_random_position()
     return array;
 }
 
-//PRINT GAME OVER
+//Print game title
+void print_title(){
+    printf("\n\e[1;35;40m");
+    printf("   _   __  __         __        _       __  \n");
+    printf("  | | |   |   | |    |   ||  | | | | | |    \n");
+    printf("  |_| |_  |   | |    |_  | | | |_| | | |_   \n");
+    printf("  | |   | |   | |      | |  || | | ||  |    \n");
+    printf("  | | __| |__ | |    __| |   | | | | | |__  \n");
+    printf("\e[0m\n");
+}
+
+//Print game over
 void print_game_over(){
     for (int i = 0; i < HEIGHT+2; i++)
     {   
@@ -297,7 +311,7 @@ void print_game_over(){
             for (int j = 0; j < WIDTH+20; j++)
             {
                 if(j == (WIDTH/2) - 5){
-                    printf("GAME OVER!");
+                    printf("\e[1;35mGAME OVER!");
                 }else if(j == WIDTH + 20 -1){
                     putchar(' ');
                     putchar('\n');
@@ -309,7 +323,7 @@ void print_game_over(){
             for (int j = 0; j < WIDTH+20; j++)
             {
                 if(j == (WIDTH/2) - 5){
-                    printf("PUNTI: %i", length);
+                    printf("\e[0;35mPOINTS: %i\e[0m", length);
                 }else if(j == WIDTH + 20 -1){
                     putchar(' ');
                     putchar('\n');
@@ -344,13 +358,14 @@ int main(int argc, char const *argv[])
     q = initialize_queue();
     q.allocate_memory();
 
-    //  Hide cursor
+    // Hide cursor
     printf("\e[?25l");
 
     // Print schema
     food = get_random_position();
+    print_title();
     print_schema();
-    printf("\nPUNTI: %i", q.size());
+    printf("\n\e[0;35mPOINTS: %i\e[0m", snake_length);
 
     while (!quit)
     {
@@ -366,27 +381,25 @@ int main(int argc, char const *argv[])
         {
             food = get_random_position();
             food_taked = 0;
-        }
-
+        }        
+        
         up_cursor();
         print_schema();
-        printf("\nPUNTI: %i", snake_length);
-
+        printf("\n\e[0;35mPOINTS: %i   \e[3;35m[WASD to move and Q to exit]\e[0m", snake_length);
+        
         check_direction();
+        check_bounds();        
 
         //CHECK QUEUE
         for (int i = 0; i <= snake_length; i++)
         {
             if (q.size() > snake_length)
                 q.dequeue();
-        }
+        }      
 
-        
-        check_bounds();
-
-        read_keyboard();
+        read_keyboard();       
 	
-        // SLEEP TIME
+        //SLEEP TIME
         int milliseconds=300;
         ts.tv_sec = milliseconds / 1000;
         ts.tv_nsec = (milliseconds % 1000) * 1000000;

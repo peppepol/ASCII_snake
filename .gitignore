@@ -1,3 +1,5 @@
 linux.c
 windows.c
 test.c
+.vscode
+build.bat
