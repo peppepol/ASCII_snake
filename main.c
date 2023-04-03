@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
-//Private libraries
+//Libraries
 #include "queue.h"
 
 //Keyboard events libraries
@@ -41,7 +41,7 @@ int snake_length = 1;
 
 int *food;
 int food_spawned = 0;
-int food_taked = 0;
+int food_taken = 0;
 int quit = 0;
 enum Direction dir = RIGHT;
 int game_over=0;
@@ -109,7 +109,7 @@ void print_schema()
                         printf("\e[0m");
 
                         if(j == food[0] && i == food[1]){
-                            food_taked = 1;
+                            food_taken = 1;
                             food_spawned = 0;
                             snake_length++;
                         }
@@ -380,7 +380,7 @@ int main(int argc, char const *argv[])
         if (food_spawned == 0)
         {
             food = get_random_position();
-            food_taked = 0;
+            food_taken = 0;
         }        
         
         up_cursor();
